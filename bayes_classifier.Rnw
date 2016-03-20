@@ -1,0 +1,143 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<echo=TRUE>>=
+library("rgl")
+bayes<-function()
+    {
+  rm(list=ls())
+  
+  pdfnvar<-function(x,m,K,n) ((1/(sqrt((2*pi)^n*( det(K) )))*exp(-0.5*(t(x-m) %*% (solve(K)) %*% (x-m) ))))
+  
+  aux<-iris
+  r<- sample(nrow(aux))
+  dados<-aux[r,]
+  X<-dados[,-5]
+  Y<-dados[,5]
+  
+  X<-as.matrix(X)
+  Y<-as.matrix(Y)
+  
+  size_train<-floor(0.7*nrow(dados))
+  size_test<-nrow(dados) - size_train
+  
+  train<-X[1:size_train,]
+  Ytrain<-Y[1:size_train,]
+  test<-X[(size_train+1):nrow(dados),]
+  Ytest<-Y[(size_train+1):nrow(dados),]
+  
+  T1 <- train[Ytrain=='setosa',]
+  T2 <- train[Ytrain=='versicolor',]
+  T3 <- train[Ytrain=='virginica',]
+  
+  mT1 = colMeans(T1)
+  mT2 = colMeans(T2)
+  mT3 = colMeans(T3)
+   
+  covT1 = cov(T1)
+  covT2 = cov(T2)
+  covT3 = cov(T3)
+  
+  
+  #################### Training #################################
+  M1<-vector(length = nrow(train))
+  M2<-vector(length = nrow(train))
+  M3<-vector(length = nrow(train))
+  res1<-vector(length = nrow(train))
+  
+  n<-ncol(train)
+  ci<-0
+  for (i in 1:nrow(train)) {
+    ci<-ci+1
+    M1[ci]<-pdfnvar(train[i,],mT1,covT1,n)
+    M2[ci]<-pdfnvar(train[i,],mT2,covT2,n)
+    M3[ci]<-pdfnvar(train[i,],mT3,covT3,n)
+    res1[ci]<-which.max(c(M1[ci],M2[ci],M3[ci]))
+  }
+  
+  ci<-0
+  for (i in 1:length(Ytrain)) {
+    ci<-ci+1
+    if (Ytrain[ci] == "setosa") {
+      Ytrain[ci]<-1
+    }
+    else 
+    if (Ytrain[ci] == "versicolor") {
+      Ytrain[ci]<-2
+    }
+    else Ytrain[ci]<-3
+  }
+  R1<-0
+  for (i in 1:length(res1)) {
+    if(res1[i] == Ytrain[i])
+    {
+      R1<-R1+1
+    }
+  }
+  
+  ################## Testing ######################################
+  
+  
+  M1<-vector(length = nrow(test))
+  M2<-vector(length = nrow(test))
+  M3<-vector(length = nrow(test))
+  res2<-vector(length = nrow(test))
+  
+  n<-ncol(test)
+  ci<-0
+  for (i in 1:nrow(test)) {
+    ci<-ci+1
+    M1[ci]<-pdfnvar(test[i,],mT1,covT1,n)
+    M2[ci]<-pdfnvar(test[i,],mT2,covT2,n)
+    M3[ci]<-pdfnvar(test[i,],mT3,covT3,n)
+    res2[ci]<-which.max(c(M1[ci],M2[ci],M3[ci]))
+  }
+  
+  ci<-0
+  for (i in 1:length(Ytest)) {
+    ci<-ci+1
+    if (Ytest[ci] == "setosa") {
+      Ytest[ci]<-1
+    }
+    else 
+    if (Ytest[ci] == "versicolor") {
+      Ytest[ci]<-2
+    }
+    else Ytest[ci]<-3
+  }
+  R2<-0
+  for (i in 1:length(res2)) {
+    if(res2[i] == Ytest[i])
+    {
+      R2<-R2+1
+    }
+  }
+  
+  p1<-round(R1*100/length(res1),digits = 2)
+  p2<-round(R2*100/length(res2),digits = 2)
+  ################## Printing #####################################
+  cat("resultado do Treino: ",p1,"%\n")
+  cat("resultado do Teste: ",p2,"%\n")
+  
+  return(c(p1,p2))
+  
+
+}
+
+@
+
+<<echo=TRUE>>=
+
+res<-matrix(nrow = 100,ncol = 2)
+ci<-0
+for (i in 1:nrow(res)) {
+  ci<-ci+1
+  res[ci,]<-bayes()
+}
+
+@
+
+
+\end{document}
